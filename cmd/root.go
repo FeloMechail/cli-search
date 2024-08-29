@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -32,8 +33,13 @@ to quickly create a Cobra application.`,
 			os.Exit(0)
 		}
 
+		err := LoadConfig()
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		searchQuery := strings.Join(args, " ")
-		output, _ := OpenBrowser(searchQuery)
+		output, _ := PerormSearch(searchQuery)
 		fmt.Println(string(output))
 		fmt.Printf("Searching for \"%s\"\n", searchQuery)
 	},

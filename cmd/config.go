@@ -4,7 +4,6 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/spf13/cobra"
@@ -26,7 +25,9 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		file, err := LoadConfig()
+		// TODO: change log.Fatalf to error.new(type)
+
+		err := LoadConfig()
 		if err != nil {
 			log.Fatalf("Could not open config file %v", err)
 		}
@@ -48,26 +49,9 @@ to quickly create a Cobra application.`,
 			showConfigPath()
 		}
 		if showConfigf {
-			showConfig(file)
+			showConfig()
 		}
 	},
-}
-
-// TODO: show absolute path
-func showConfigPath() {
-	fmt.Print("PATH: cmd/config.yaml\n")
-}
-
-func showConfig(file *Config) {
-	for _, engine := range file.SearchEngines {
-		fmt.Printf(
-			"Name: %s, Shortcut: %s, URL: %s\n",
-			engine.Name,
-			engine.Shortcut,
-			engine.URL,
-		)
-	}
-	fmt.Printf("Default Engine: %s, Default Browser: %s", file.DefaultSearch, file.DefaultBrowser)
 }
 
 func init() {

@@ -23,19 +23,23 @@ type SearchEngine struct {
 	URL      string `yaml:"url"`
 }
 
-var configPath string = "cmd/config.yaml"
+var (
+	configPath   string = "cmd/config.yaml"
+	config       Config
+	urlMap       map[string]string
+	configLoaded bool
+)
 
 // loadConfig function  
-func LoadConfig() (*Config, error) {
+func LoadConfig() error {
 	file, err := os.ReadFile(configPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var config Config
 	err = yaml.Unmarshal(file, &config)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if config.DefaultBrowser == "" {
@@ -60,14 +64,18 @@ func LoadConfig() (*Config, error) {
 
 	}
 
-	return &config, nil
+	urlMap = make(map[string]string)
+
+	for _, enginess := range config.SearchEngines {
+		urlMap[enginess.Shortcut] = enginess.URL
+	}
+
+	configLoaded = true
+
+	return nil
 }
 
 func SetDefaultBrowser(browser string) error {
-	config, err := LoadConfig()
-	if err != nil {
-		log.Fatalf("Error loading config file: %v\n", err)
-	}
 	// TODO: clean browser string and check if browser exists
 	config.DefaultBrowser = browser
 	fmt.Printf("Changed %s to default browser\n", browser)
@@ -86,11 +94,7 @@ func SetDefaultBrowser(browser string) error {
 }
 
 func SetDefaultSearchEngine(engine string) error {
-	config, err := LoadConfig()
-	if err != nil {
-		log.Fatalf("Error loading config file: %v\n", err)
-	}
-
+	// TODO: hash table?
 	for _, name := range config.SearchEngines {
 		if name.Name == engine {
 			config.DefaultSearch = name.Shortcut
@@ -111,8 +115,38 @@ func SetDefaultSearchEngine(engine string) error {
 	return errors.New("Search Engine not in config file, add it using ..")
 }
 
-func OpenBrowser(query string) (output []byte, err error) {
-	// TODO: change to whatever browser in config
+func PerormSearch(search string) (string, error) {
+	// TODO: search engine flag
+	url := urlMap[config.DefaultSearch]
+	url = url + search
+	output, err := openBrowser(url)
+
+	return string(output), err
+}
+
+// TODO: show absolute path
+func showConfigPath() {
+	fmt.Print("PATH: cmd/config.yaml\n")
+}
+
+func showConfig() {
+	for _, engine := range config.SearchEngines {
+		fmt.Printf(
+			"Name: %s, Shortcut: %s, URL: %s\n",
+			engine.Name,
+			engine.Shortcut,
+			engine.URL,
+		)
+	}
+	fmt.Printf(
+		"Default Engine: %s, Default Browser: %s",
+		config.DefaultSearch,
+		config.DefaultBrowser,
+	)
+}
+
+func openBrowser(query string) (output []byte, err error) {
+	// TODO: change to whatever browser in config, OS detection
 	cmd := "xdg-open"
 	var args []string
 	fmt.Print("Opening browser\n")

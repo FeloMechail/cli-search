@@ -5,5 +5,5 @@ search_engines:
     - name: Wikipedia
       shortcut: wiki
       url: https://en.wikipedia.org/wiki/Special:Search?search=
-default_search: wiki
+default_search: g
 default_browser: chrome
