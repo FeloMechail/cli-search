@@ -10,6 +10,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	browser string
+	engine  string
+)
+
 // configCmd represents the config command
 var configCmd = &cobra.Command{
 	Use:   "config",
@@ -21,10 +26,22 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		file, err := loadConfig("cmd/config.yaml")
+		file, err := LoadConfig()
 		if err != nil {
 			log.Fatalf("Could not open config file %v", err)
 		}
+
+		if browser != "" {
+			SetDefaultBrowser(browser)
+		}
+
+		if engine != "" {
+			err := SetDefaultSearchEngine(engine)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
 		pathf, _ := cmd.Flags().GetBool("showpath")
 		showConfigf, _ := cmd.Flags().GetBool("showconfig")
 		if pathf {
@@ -36,6 +53,7 @@ to quickly create a Cobra application.`,
 	},
 }
 
+// TODO: show absolute path
 func showConfigPath() {
 	fmt.Print("PATH: cmd/config.yaml\n")
 }
@@ -54,7 +72,9 @@ func showConfig(file *Config) {
 
 func init() {
 	configCmd.Flags().Bool("showpath", false, "Path to config file")
-	configCmd.Flags().Bool("showconfig", false, "Show Current config")
+	configCmd.Flags().Bool("showconfig", false, "Show current config")
+	configCmd.Flags().StringVar(&browser, "set-default-browser", "", "Set default browser")
+	configCmd.Flags().StringVar(&engine, "set-default-engine", "", "Set default search engine")
 
 	rootCmd.AddCommand(configCmd)
 

@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -21,9 +23,11 @@ type SearchEngine struct {
 	URL      string `yaml:"url"`
 }
 
+var configPath string = "cmd/config.yaml"
+
 // loadConfig function  
-func loadConfig(filename string) (*Config, error) {
-	file, err := os.ReadFile(filename)
+func LoadConfig() (*Config, error) {
+	file, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}
@@ -48,9 +52,9 @@ func loadConfig(filename string) (*Config, error) {
 			log.Fatalf("Error marshaling yaml: %v", err)
 		}
 
-		err = os.WriteFile(filename, updatedData, os.ModePerm)
+		err = os.WriteFile(configPath, updatedData, os.ModePerm)
 		if err != nil {
-			log.Fatalf("Error writing default browser: %s\n", err)
+			log.Fatalf("Error writing default browser: %v\n", err)
 		}
 
 	}
@@ -58,18 +62,50 @@ func loadConfig(filename string) (*Config, error) {
 	return &config, nil
 }
 
-// func main() {
-// 	config, err := loadConfig("config.yaml")
-// 	if err != nil {
-// 		log.Fatalf("Failed to load config: %v", err)
-// 	}
-//
-// 	for _, engine := range config.SearchEngines {
-// 		fmt.Printf(
-// 			"Name: %s, Shortcut: %s, URL: %s\n",
-// 			engine.Name,
-// 			engine.Shortcut,
-// 			engine.URL,
-// 		)
-// 	}
-// }
+func SetDefaultBrowser(browser string) error {
+	config, err := LoadConfig()
+	if err != nil {
+		log.Fatalf("Error loading config file: %v\n", err)
+	}
+	// TODO: clean browser string and check if browser exists
+	config.DefaultBrowser = browser
+	fmt.Printf("Changed %s to default browser\n", browser)
+
+	updatedData, err := yaml.Marshal(&config)
+	if err != nil {
+		log.Fatalf("Error marshaling yaml: %v", err)
+	}
+
+	err = os.WriteFile(configPath, updatedData, os.ModePerm)
+	if err != nil {
+		log.Fatalf("Error writing default browser: %v\n", err)
+	}
+
+	return nil
+}
+
+func SetDefaultSearchEngine(engine string) error {
+	config, err := LoadConfig()
+	if err != nil {
+		log.Fatalf("Error loading config file: %v\n", err)
+	}
+
+	for _, name := range config.SearchEngines {
+		if name.Name == engine {
+			config.DefaultSearch = name.Shortcut
+			updatedData, err := yaml.Marshal(&config)
+			if err != nil {
+				log.Fatalf("Error marshaling yaml: %v", err)
+			}
+
+			err = os.WriteFile(configPath, updatedData, os.ModePerm)
+			if err != nil {
+				log.Fatalf("Error writing default browser: %v\n", err)
+			}
+			fmt.Printf("Changed %s to default search engine\n", engine)
+			return nil
+
+		}
+	}
+	return errors.New("Search Engine not in config file, add it using ..")
+}
