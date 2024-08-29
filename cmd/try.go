@@ -39,6 +39,7 @@ func LoadConfig() (*Config, error) {
 	}
 
 	if config.DefaultBrowser == "" {
+		// TODO: execute command depending on OS
 		browser, err := exec.Command("xdg-settings", "get", "default-web-browser").
 			Output()
 		if err != nil {
@@ -108,4 +109,15 @@ func SetDefaultSearchEngine(engine string) error {
 		}
 	}
 	return errors.New("Search Engine not in config file, add it using ..")
+}
+
+func OpenBrowser(query string) (output []byte, err error) {
+	// TODO: change to whatever browser in config
+	cmd := "xdg-open"
+	var args []string
+	fmt.Print("Opening browser\n")
+
+	args = append(args, query)
+	output, err = exec.Command(cmd, args...).CombinedOutput()
+	return output, err
 }

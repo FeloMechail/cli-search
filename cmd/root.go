@@ -4,10 +4,14 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
+
+// TODO: Add commands validation maybe
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -19,25 +23,20 @@ examples and usage of using your application. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
+	Args: cobra.ArbitraryArgs, // Accepts any arguments
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) {
-	// 	config, err := loadConfig(
-	// 		"cmd/config.yaml",
-	// 	)
-	// 	if err != nil {
-	// 		log.Fatalf("Failed to load config: %v", err)
-	// 	}
-	//
-	// 	for _, engine := range config.SearchEngines {
-	// 		fmt.Printf(
-	// 			"Name: %s, Shortcut: %s, URL: %s\n",
-	// 			engine.Name,
-	// 			engine.Shortcut,
-	// 			engine.URL,
-	// 		)
-	// 	}
-	// },
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) == 0 {
+			cmd.Help()
+			os.Exit(0)
+		}
+
+		searchQuery := strings.Join(args, " ")
+		output, _ := OpenBrowser(searchQuery)
+		fmt.Println(string(output))
+		fmt.Printf("Searching for \"%s\"\n", searchQuery)
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
