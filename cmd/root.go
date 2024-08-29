@@ -4,10 +4,7 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
-	"log"
 	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -24,25 +21,10 @@ examples and usage of using your application. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Args: cobra.ArbitraryArgs, // Accepts any arguments
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			cmd.Help()
-			os.Exit(0)
-		}
-
-		err := LoadConfig()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		searchQuery := strings.Join(args, " ")
-		output, _ := PerormSearch(searchQuery)
-		fmt.Println(string(output))
-		fmt.Printf("Searching for \"%s\"\n", searchQuery)
-	},
+	// Run: func(cmd *cobra.Command, args []string) {
+	// },
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

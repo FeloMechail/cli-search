@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -115,10 +116,23 @@ func SetDefaultSearchEngine(engine string) error {
 	return errors.New("Search Engine not in config file, add it using ..")
 }
 
-func PerormSearch(search string) (string, error) {
+func PerormSearch(search string, flags []string) (string, error) {
 	// TODO: search engine flag
-	url := urlMap[config.DefaultSearch]
-	url = url + search
+	var url string
+	if slices.Contains(flags, "u") {
+		url = "https://" + search
+	} else if slices.Contains(flags, "e") {
+		if url = urlMap[engine]; url == "" {
+			log.Fatal("Engine not in config. add it")
+		}
+
+		url = url + search
+	} else {
+		url = urlMap[config.DefaultSearch]
+		url = url + search
+	}
+
+	fmt.Printf("URL: %s\n", url)
 	output, err := openBrowser(url)
 
 	return string(output), err
