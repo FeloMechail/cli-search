@@ -24,6 +24,14 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		pathf, _ := cmd.Flags().GetBool("showpath")
+		showConfigf, _ := cmd.Flags().GetBool("showconfig")
+
+		if browser == "" && engine == "" && !pathf && !showConfigf {
+			cmd.Help()
+		}
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		pathf, _ := cmd.Flags().GetBool("showpath")
 		showConfigf, _ := cmd.Flags().GetBool("showconfig")
