@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/spf13/cobra"
 )
@@ -25,11 +24,9 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		err := LoadConfig()
-		if err != nil {
-			return fmt.Errorf("Could not open config file %v", err)
-		}
+	RunE: func(cmd *cobra.Command, args []string) error {
+		pathf, _ := cmd.Flags().GetBool("showpath")
+		showConfigf, _ := cmd.Flags().GetBool("showconfig")
 
 		if browser != "" {
 			err := SetDefaultBrowser(browser)
@@ -44,27 +41,26 @@ to quickly create a Cobra application.`,
 				return fmt.Errorf("Could not set default search engine %v", err)
 			}
 		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: change log.Fatalf to error.new(type)
 
-		pathf, _ := cmd.Flags().GetBool("showpath")
-		showConfigf, _ := cmd.Flags().GetBool("showconfig")
 		if pathf {
 			showConfigPath()
 		}
+
 		if showConfigf {
 			showConfig()
 		}
+
+		return nil
 	},
 }
 
 func init() {
 	configCmd.Flags().Bool("showpath", false, "Path to config file")
 	configCmd.Flags().Bool("showconfig", false, "Show current config")
-	configCmd.Flags().StringVar(&browser, "set-default-browser", "", "Set default browser")
-	configCmd.Flags().StringVar(&engine, "set-default-engine", "", "Set default search engine")
+	configCmd.Flags().
+		StringVar(&browser, "set-default-browser", "", "Set default browser")
+	configCmd.Flags().
+		StringVar(&engine, "set-default-engine", "", "Set default search engine")
 
 	rootCmd.AddCommand(configCmd)
 

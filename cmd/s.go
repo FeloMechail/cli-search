@@ -4,8 +4,8 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -22,19 +22,23 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		err := LoadConfig()
-		if err != nil {
-			log.Fatal(err)
-		}
-
+	RunE: func(cmd *cobra.Command, args []string) error {
 		var flags []string
 		searchQuery := strings.Join(args, " ")
-		urlf, _ := cmd.Flags().GetBool("url")
-		enginef, _ := cmd.Flags().GetString("engine")
+		urlf, err := cmd.Flags().GetBool("url")
+		if err != nil {
+			return err
+		}
+
+		enginef, err := cmd.Flags().GetString("engine")
+		if err != nil {
+			return err
+		}
 
 		if urlf && enginef != "" {
-			log.Fatal("You cannot use the -u and -e flags at the same time")
+			return errors.New(
+				"You cannot use the -u and -e flags at the same time",
+			)
 		}
 		if urlf {
 			flags = append(flags, "u")
@@ -42,16 +46,25 @@ to quickly create a Cobra application.`,
 			flags = append(flags, "e")
 		}
 
-		output, _ := PerformSearch(searchQuery, flags)
+		output, err := PerformSearch(searchQuery, flags)
+		if err != nil {
+			return err
+		}
+
 		fmt.Println(string(output))
 		fmt.Printf("Searching for \"%s\"\n", searchQuery)
+
+		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(sCmd)
 	sCmd.Flags().BoolP("url", "u", false, "Go to url instead of searching")
-	sCmd.Flags().StringVarP(&engine, "engine", "e", config.DefaultSearch, "Use different search engine")
+	sCmd.Flags().
+		StringVarP(&engine, "engine", "e", config.DefaultSearch, "Use different search engine")
+	sCmd.MarkFlagsMutuallyExclusive("url", "engine")
+
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command

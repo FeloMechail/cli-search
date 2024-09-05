@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"slices"
@@ -123,7 +122,7 @@ func PerformSearch(search string, flags []string) (string, error) {
 		url = "https://" + search
 	} else if slices.Contains(flags, "e") {
 		if url = urlMap[engine]; url == "" {
-			log.Fatal("Engine not in config. add it")
+			return "", errors.New("Engine not in config. add it")
 		}
 
 		url = url + search
