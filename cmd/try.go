@@ -3,116 +3,149 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
-	"strings"
 
+	"github.com/spf13/viper"
 	"gopkg.in/yaml.v3"
 )
 
+// Config represents the structure of the configuration file.
 type Config struct {
-	SearchEngines  []SearchEngine `yaml:"search_engines"`
-	DefaultSearch  string         `yaml:"default_search"`
-	DefaultBrowser string         `yaml:"default_browser"`
+	SearchEngines  []SearchEngine `yaml:"search_engines"`  // List of search engines
+	DefaultSearch  string         `yaml:"default_search"`  // Shortcut for the default search engine
+	DefaultBrowser string         `yaml:"default_browser"` // Default browser
 }
 
+// SearchEngine represents a search engine configuration.
 type SearchEngine struct {
-	Name     string `yaml:"name"`
-	Shortcut string `yaml:"shortcut"`
-	URL      string `yaml:"url"`
+	Name     string `yaml:"name"`     // Name of the search engine
+	Shortcut string `yaml:"shortcut"` // Shortcut for the search engine
+	URL      string `yaml:"url"`      // URL template for the search engine
 }
 
 var (
-	configPath   string = "cmd/config.yaml"
+	configPath   string
 	config       Config
 	urlMap       map[string]string
 	configLoaded bool
 )
 
-// loadConfig function  
 func LoadConfig() error {
-	file, err := os.ReadFile(configPath)
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to get home directory: %w", err)
 	}
 
-	err = yaml.Unmarshal(file, &config)
+	configPath = filepath.Join(homeDir, ".config", "cs", "cs.yaml")
+	log.Print(configPath)
+	viper.SetConfigFile(configPath)
+	viper.SetConfigType("yaml")
+
+	if err := viper.ReadInConfig(); err != nil {
+		if os.IsNotExist(err) {
+			fmt.Println(
+				"Config file not found, creating a new one with default settings...",
+			)
+			if err := createDefaultConfig(); err != nil {
+				return fmt.Errorf("failed to create default config: %w", err)
+			}
+		} else {
+			return fmt.Errorf("error reading config file: %w", err)
+		}
+	}
+
+	if err := viper.Unmarshal(&config); err != nil {
+		return fmt.Errorf("unable to unmarshal config: %w", err)
+	}
+
+	return nil
+}
+
+func createDefaultConfig() error {
+	defaultConfig := Config{
+		SearchEngines: []SearchEngine{
+			{
+				Name:     "Google",
+				Shortcut: "g",
+				URL:      "https://www.google.com/search?q=",
+			},
+			{
+				Name:     "Wikipedia",
+				Shortcut: "wiki",
+				URL:      "https://en.wikipedia.org/wiki/Special:Search?search=",
+			},
+		},
+		DefaultSearch:  "g",
+		DefaultBrowser: "",
+	}
+
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to get home directory: %w", err)
 	}
 
-	if config.DefaultBrowser == "" {
-		// TODO: execute command depending on OS
-		browser, err := exec.Command("xdg-settings", "get", "default-web-browser").
-			Output()
-		if err != nil {
-			return err
-		}
-
-		config.DefaultBrowser = strings.TrimSpace(string(browser))
-
-		updatedData, err := yaml.Marshal(&config)
-		if err != nil {
-			return err
-		}
-
-		err = os.WriteFile(configPath, updatedData, os.ModePerm)
-		if err != nil {
-			return err
-		}
-
+	configDir := filepath.Join(homeDir, ".config", "cs")
+	if err := os.MkdirAll(configDir, os.ModePerm); err != nil {
+		return fmt.Errorf("unable to create config directory: %w", err)
 	}
 
-	urlMap = make(map[string]string)
-
-	for _, enginess := range config.SearchEngines {
-		urlMap[enginess.Shortcut] = enginess.URL
+	configFile := filepath.Join(configDir, "cs.yaml")
+	file, err := os.Create(configFile)
+	if err != nil {
+		return fmt.Errorf("unable to create config file: %w", err)
 	}
+	defer file.Close()
 
-	configLoaded = true
+	encoder := yaml.NewEncoder(file)
+	defer encoder.Close()
+
+	if err := encoder.Encode(defaultConfig); err != nil {
+		return fmt.Errorf("failed to write default config: %w", err)
+	}
 
 	return nil
 }
 
 func SetDefaultBrowser(browser string) error {
-	// TODO: clean browser string and check if browser exists
+	// Validate and clean browser string
 	config.DefaultBrowser = browser
-	fmt.Printf("Changed %s to default browser\n", browser)
+	fmt.Printf("Changed default browser to %s\n", browser)
 
-	updatedData, err := yaml.Marshal(&config)
-	if err != nil {
-		return err
-	}
-
-	err = os.WriteFile(configPath, updatedData, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return saveConfig()
 }
 
 func SetDefaultSearchEngine(engine string) error {
-	// TODO: hash table?
-	for _, name := range config.SearchEngines {
-		if name.Name == engine {
-			config.DefaultSearch = name.Shortcut
-			updatedData, err := yaml.Marshal(&config)
-			if err != nil {
-				return err
-			}
-
-			err = os.WriteFile(configPath, updatedData, os.ModePerm)
-			if err != nil {
-				return err
-			}
-			fmt.Printf("Changed %s to default search engine\n", engine)
-			return nil
-
+	for _, se := range config.SearchEngines {
+		if se.Name == engine {
+			config.DefaultSearch = se.Shortcut
+			fmt.Printf("Changed default search engine to %s\n", engine)
+			return saveConfig()
 		}
 	}
-	return errors.New("Search Engine not in config file, add it using ..")
+	return fmt.Errorf("search engine '%s' not found in config", engine)
+}
+
+func saveConfig() error {
+	updatedData, err := yaml.Marshal(&config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open config file for writing: %w", err)
+	}
+	defer file.Close()
+
+	if _, err := file.Write(updatedData); err != nil {
+		return fmt.Errorf("failed to write updated config to file: %w", err)
+	}
+
+	return nil
 }
 
 func PerformSearch(search string, flags []string) (string, error) {
@@ -137,25 +170,12 @@ func PerformSearch(search string, flags []string) (string, error) {
 	return string(output), err
 }
 
-// TODO: show absolute path
 func showConfigPath() {
-	fmt.Print("PATH: cmd/config.yaml\n")
+	fmt.Print(viper.ReadInConfig())
 }
 
 func showConfig() {
-	for _, engine := range config.SearchEngines {
-		fmt.Printf(
-			"Name: %s, Shortcut: %s, URL: %s\n",
-			engine.Name,
-			engine.Shortcut,
-			engine.URL,
-		)
-	}
-	fmt.Printf(
-		"Default Engine: %s, Default Browser: %s",
-		config.DefaultSearch,
-		config.DefaultBrowser,
-	)
+	fmt.Print(config)
 }
 
 func openBrowser(query string) (output []byte, err error) {

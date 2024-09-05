@@ -51,7 +51,9 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
+		fmt.Print("Command output\n\n")
 		fmt.Println(string(output))
+		fmt.Print("End of Command output\n\n")
 		fmt.Printf("Searching for \"%s\"\n", searchQuery)
 
 		return nil
