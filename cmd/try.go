@@ -48,19 +48,19 @@ func LoadConfig() error {
 		browser, err := exec.Command("xdg-settings", "get", "default-web-browser").
 			Output()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		config.DefaultBrowser = strings.TrimSpace(string(browser))
 
 		updatedData, err := yaml.Marshal(&config)
 		if err != nil {
-			log.Fatalf("Error marshaling yaml: %v", err)
+			return err
 		}
 
 		err = os.WriteFile(configPath, updatedData, os.ModePerm)
 		if err != nil {
-			log.Fatalf("Error writing default browser: %v\n", err)
+			return err
 		}
 
 	}
@@ -83,12 +83,12 @@ func SetDefaultBrowser(browser string) error {
 
 	updatedData, err := yaml.Marshal(&config)
 	if err != nil {
-		log.Fatalf("Error marshaling yaml: %v", err)
+		return err
 	}
 
 	err = os.WriteFile(configPath, updatedData, os.ModePerm)
 	if err != nil {
-		log.Fatalf("Error writing default browser: %v\n", err)
+		return err
 	}
 
 	return nil
@@ -101,12 +101,12 @@ func SetDefaultSearchEngine(engine string) error {
 			config.DefaultSearch = name.Shortcut
 			updatedData, err := yaml.Marshal(&config)
 			if err != nil {
-				log.Fatalf("Error marshaling yaml: %v", err)
+				return err
 			}
 
 			err = os.WriteFile(configPath, updatedData, os.ModePerm)
 			if err != nil {
-				log.Fatalf("Error writing default browser: %v\n", err)
+				return err
 			}
 			fmt.Printf("Changed %s to default search engine\n", engine)
 			return nil
@@ -116,7 +116,7 @@ func SetDefaultSearchEngine(engine string) error {
 	return errors.New("Search Engine not in config file, add it using ..")
 }
 
-func PerormSearch(search string, flags []string) (string, error) {
+func PerformSearch(search string, flags []string) (string, error) {
 	// TODO: search engine flag
 	var url string
 	if slices.Contains(flags, "u") {

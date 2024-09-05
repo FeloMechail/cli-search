@@ -42,7 +42,7 @@ to quickly create a Cobra application.`,
 			flags = append(flags, "e")
 		}
 
-		output, _ := PerormSearch(searchQuery, flags)
+		output, _ := PerformSearch(searchQuery, flags)
 		fmt.Println(string(output))
 		fmt.Printf("Searching for \"%s\"\n", searchQuery)
 	},

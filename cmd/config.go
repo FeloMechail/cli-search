@@ -4,6 +4,7 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/spf13/cobra"
@@ -24,24 +25,29 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: change log.Fatalf to error.new(type)
-
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		err := LoadConfig()
 		if err != nil {
-			log.Fatalf("Could not open config file %v", err)
+			return fmt.Errorf("Could not open config file %v", err)
 		}
 
 		if browser != "" {
-			SetDefaultBrowser(browser)
+			err := SetDefaultBrowser(browser)
+			if err != nil {
+				return fmt.Errorf("could not set default browser %v", err)
+			}
 		}
 
 		if engine != "" {
 			err := SetDefaultSearchEngine(engine)
 			if err != nil {
-				log.Fatal(err)
+				return fmt.Errorf("Could not set default search engine %v", err)
 			}
 		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		// TODO: change log.Fatalf to error.new(type)
 
 		pathf, _ := cmd.Flags().GetBool("showpath")
 		showConfigf, _ := cmd.Flags().GetBool("showconfig")
