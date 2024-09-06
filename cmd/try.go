@@ -15,16 +15,16 @@ import (
 
 // Config represents the structure of the configuration file.
 type Config struct {
-	SearchEngines  []SearchEngine `yaml:"search_engines"`  // List of search engines
-	DefaultSearch  string         `yaml:"default_search"`  // Shortcut for the default search engine
-	DefaultBrowser string         `yaml:"default_browser"` // Default browser
+	SearchEngines  []SearchEngine `yaml:"search_engines"  mapstructure:"search_engines"`  // List of search engines
+	DefaultSearch  string         `yaml:"default_search"  mapstructure:"default_search"`  // Shortcut for the default search engine
+	DefaultBrowser string         `yaml:"default_browser" mapstructure:"default_browser"` // Default browser
 }
 
 // SearchEngine represents a search engine configuration.
 type SearchEngine struct {
-	Name     string `yaml:"name"`     // Name of the search engine
-	Shortcut string `yaml:"shortcut"` // Shortcut for the search engine
-	URL      string `yaml:"url"`      // URL template for the search engine
+	Name     string `yaml:"name"     mapstructure:"name"`     // Name of the search engine
+	Shortcut string `yaml:"shortcut" mapstructure:"shortcut"` // Shortcut for the search engine
+	URL      string `yaml:"url"      mapstructure:"url"`      // URL template for the search engine
 }
 
 var (
@@ -41,12 +41,14 @@ func LoadConfig() error {
 	}
 
 	configPath = filepath.Join(homeDir, ".config", "cs", "cs.yaml")
-	log.Print(configPath)
+
 	viper.SetConfigFile(configPath)
 	viper.SetConfigType("yaml")
 
+	// Attempt to read the config file
 	if err := viper.ReadInConfig(); err != nil {
-		if os.IsNotExist(err) {
+		// Handle case where config file is not found
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			fmt.Println(
 				"Config file not found, creating a new one with default settings...",
 			)
@@ -58,14 +60,23 @@ func LoadConfig() error {
 		}
 	}
 
+	// Unmarshal the config into the struct
 	if err := viper.Unmarshal(&config); err != nil {
 		return fmt.Errorf("unable to unmarshal config: %w", err)
 	}
 
+	// Populate the urlMap for easy access
+	urlMap = make(map[string]string)
+	for _, engine := range config.SearchEngines {
+		urlMap[engine.Shortcut] = engine.URL
+	}
+
+	configLoaded = true
 	return nil
 }
 
 func createDefaultConfig() error {
+	// TODO: get system default browser
 	defaultConfig := Config{
 		SearchEngines: []SearchEngine{
 			{
@@ -107,6 +118,7 @@ func createDefaultConfig() error {
 		return fmt.Errorf("failed to write default config: %w", err)
 	}
 
+	log.Println("Default config file created.")
 	return nil
 }
 
@@ -171,11 +183,23 @@ func PerformSearch(search string, flags []string) (string, error) {
 }
 
 func showConfigPath() {
-	fmt.Print(viper.ReadInConfig())
+	fmt.Printf("%v\n", configPath)
 }
 
 func showConfig() {
-	fmt.Print(config)
+	for _, se := range config.SearchEngines {
+		fmt.Printf(
+			"Search engine: %s, Shortcut: %s, url: %s\n",
+			se.Name,
+			se.Shortcut,
+			se.URL,
+		)
+	}
+	fmt.Printf(
+		"Default search: %s, Default browser: %s\n",
+		config.DefaultSearch,
+		config.DefaultBrowser,
+	)
 }
 
 func openBrowser(query string) (output []byte, err error) {

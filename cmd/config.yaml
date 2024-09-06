@@ -1,9 +1,0 @@
-search_engines:
-    - name: Google
-      shortcut: g
-      url: https://www.google.com/search?q=
-    - name: Wikipedia
-      shortcut: wiki
-      url: https://en.wikipedia.org/wiki/Special:Search?search=
-default_search: g
-default_browser: chrome

@@ -22,19 +22,23 @@ func TestLoadConfigError(t *testing.T) {
 	rootCmd.SetOut(output)
 
 	// originalConfig
-	originalConfig, err := os.ReadFile("config.yaml")
+	originalConfig, err := os.ReadFile("$HOME/.config/cs/cs.yaml")
 	if err != nil {
 		t.Fatalf("Failed to read the original config file: %v", err)
 	}
 
 	defer func() {
-		err := os.WriteFile("config.yaml", originalConfig, os.ModePerm)
+		err := os.WriteFile(
+			"$HOME/.config/cs/cs.yaml",
+			originalConfig,
+			os.ModePerm,
+		)
 		if err != nil {
 			t.Fatalf("Failed to restore the original config file: %v", err)
 		}
 	}()
 
-	err = os.Remove("config.yaml")
+	err = os.Remove("$HOME/.config/cs/cs.yaml")
 	if err != nil {
 		t.Fatalf("Error removing config file for testing %v", err)
 	}
