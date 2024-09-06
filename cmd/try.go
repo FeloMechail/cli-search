@@ -3,11 +3,11 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v3"
@@ -43,18 +43,22 @@ func LoadConfig() error {
 	configPath = filepath.Join(homeDir, ".config", "cs", "cs.yaml")
 
 	viper.SetConfigFile(configPath)
-	viper.SetConfigType("yaml")
 
 	// Attempt to read the config file
 	if err := viper.ReadInConfig(); err != nil {
 		// Handle case where config file is not found
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+		if ok := os.IsNotExist(err); ok {
 			fmt.Println(
 				"Config file not found, creating a new one with default settings...",
 			)
 			if err := createDefaultConfig(); err != nil {
 				return fmt.Errorf("failed to create default config: %w", err)
 			}
+
+			if err := viper.ReadInConfig(); err != nil {
+				return fmt.Errorf("Error re-reading default config: %w", err)
+			}
+
 		} else {
 			return fmt.Errorf("error reading config file: %w", err)
 		}
@@ -94,6 +98,20 @@ func createDefaultConfig() error {
 		DefaultBrowser: "",
 	}
 
+	// TODO: OS detection!!!!!
+	if output, err := exec.Command("xdg-settings", "get", "default-web-browser").
+		Output(); err != nil {
+		err = fmt.Errorf(
+			"Could not get default browser info.. add it manually, %v",
+			err,
+		)
+		fmt.Println(err)
+	} else {
+		defaultConfig.DefaultBrowser = strings.TrimSpace(string(output))
+	}
+
+	fmt.Printf("Default configuration: %v\n\n", defaultConfig)
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("unable to get home directory: %w", err)
@@ -118,7 +136,6 @@ func createDefaultConfig() error {
 		return fmt.Errorf("failed to write default config: %w", err)
 	}
 
-	log.Println("Default config file created.")
 	return nil
 }
 
@@ -183,7 +200,7 @@ func PerformSearch(search string, flags []string) (string, error) {
 }
 
 func showConfigPath() {
-	fmt.Printf("%v\n", configPath)
+	fmt.Println(configPath)
 }
 
 func showConfig() {
